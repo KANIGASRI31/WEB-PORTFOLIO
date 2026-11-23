@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TelecomIQ — Intelligent Network Analytics Platform</title>
+<link rel="stylesheet" href="css/main.css">
+<!-- External Libraries for Reports -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ── Upload area ── */
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--r3);padding:28px 20px;text-align:center;cursor:pointer;transition:border-color var(--tr),background var(--tr)}
+.upload-zone:hover{border-color:var(--accent);background:rgba(59,130,246,.04)}
+.upload-zone input[type=file]{display:none}
+.upload-zone-icon{font-size:36px;margin-bottom:10px}
+.upload-zone h4{font-size:14px;font-weight:700;margin-bottom:4px}
+.upload-zone p{font-size:12px;color:var(--txt3)}
+/* ── Prep result section ── */
+#prep-results-section{display:none}
+#prep-status{display:none;padding:10px 14px;border-radius:var(--r1);background:rgba(59,130,246,.08);font-size:13px;font-weight:600;margin-bottom:16px}
+/* ── Tab panel ── */
+.tab-bar{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab-btn{padding:8px 18px;font-size:12.5px;font-weight:600;color:var(--txt3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color var(--tr),border-color var(--tr);margin-bottom:-1px}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn:hover{color:var(--txt1)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* ── Info pill ── */
+.info-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(6,182,212,.1);color:var(--cyan);border:1px solid rgba(6,182,212,.22);border-radius:99px;padding:3px 11px;font-size:11.5px;font-weight:600}
+/* ── Loading Spinner ── */
+.loading-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(4,7,15,0.92);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-overlay.active{display:flex}
+.spinner{width:60px;height:60px;border:4px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:var(--txt1);font-size:14px;font-weight:600;margin-top:8px}
+.loading-subtext{color:var(--txt3);font-size:12px}
+</style>
+</head>
+<body>
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Processing ML Models...</div>
+  <div class="loading-subtext">Training algorithms on your dataset</div>
+</div>
+
+<div class="app">
+
+<!-- ════════════════ SIDEBAR ════════════════ -->
+<nav class="sidebar">
+  <a class="logo" href="#">
+    <div class="logo-icon">📡</div>
+    <div class="logo-text">
+      <b>TelecomIQ</b>
+      <small>Network Analytics Platform</small>
+    </div>
+  </a>
+
+  <div class="nav-sec">Overview</div>
+  <ul class="nav-list">
+    <li><a href="#" class="nav-link" data-page="dashboard"><span class="nav-icon">🏠</span>Dashboard</a></li>
+  </ul>
+
+  <div class="nav-sec">Analysis</div>
+  <ul class="nav-list">
+    <li><a href="#" class="nav-link" data-page="preprocessing"><span class="nav-icon">🔧</span>Data Preprocessing</a></li>
+    <li><a href="#" class="nav-link" data-page="network"><span class="nav-icon">🌐</span>Failure Prediction<span class="nav-badge" id="nb-alerts">0</span></a></li>
+    <li><a href="#" class="nav-link" data-page="customers"><span class="nav-icon">👥</span>Customer Behaviour</a></li>
+  </ul>
+
+  <div class="nav-sec">Reports</div>
+  <ul class="nav-list">
+    <li><a href="#" class="nav-link" data-page="analytics"><span class="nav-icon">📈</span>Integrated Analytics</a></li>
+  </ul>
+
+  <div class="sidebar-footer">
+    CSA 1614 — Data Warehousing &amp; Data Mining<br>
+    <span style="color:var(--accent)">SIMATS Engineering</span>
+  </div>
+</nav>
+
+<!-- ════════════════ MAIN ════════════════ -->
+<div class="main">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-l">
+      <span id="topbar-title" style="font-size:17px;font-weight:700">Network Overview</span>
+      <span class="topbar-pill" id="topbar-sub">Real-time platform summary</span>
+    </div>
+    <div class="topbar-r">
+      <div style="display:flex;align-items:center;gap:8px;margin-right:12px">
+        <label style="font-size:11px;color:var(--txt3);font-weight:600">DATE RANGE:</label>
+        <input type="date" id="date-from" class="date-input" title="Start Date">
+        <span style="color:var(--txt3)">–</span>
+        <input type="date" id="date-to" class="date-input" title="End Date">
+        <button class="btn btn-sm" id="btn-apply-filter" onclick="applyDateFilter()">Apply</button>
+        <button class="btn btn-sm" id="btn-reset-filter" onclick="resetDateFilter()" style="display:none">Reset</button>
+      </div>
+      <div class="live">Live</div>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 1  DASHBOARD
+═══════════════════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+<div style="padding:28px">
+  <div class="ph">
+    <h1>Network Overview</h1>
+    <p>Live status of all network nodes, failure alerts, customer metrics and trend analysis</p>
+  </div>
+
+  <!-- KPI row -->
+  <div class="stat-grid">
+    <div class="stat bl"><div class="stat-label">Total Nodes</div><div class="stat-val c-bl" id="kpi-nodes">0</div><div class="stat-sub">Monitored elements</div></div>
+    <div class="stat gr"><div class="stat-label">Active / Normal</div><div class="stat-val c-gr" id="kpi-active">0</div><div class="stat-sub up">↑ Healthy nodes</div></div>
+    <div class="stat or"><div class="stat-label">Warnings</div><div class="stat-val c-or" id="kpi-warn">0</div><div class="stat-sub dn">↓ Degraded performance</div></div>
+    <div class="stat rd"><div class="stat-label">Failures</div><div class="stat-val c-rd" id="kpi-fail">0</div><div class="stat-sub dn">↑ Nodes down</div></div>
+    <div class="stat cy"><div class="stat-label">Network Uptime</div><div class="stat-val c-cy" id="kpi-uptime">0</div><div class="stat-sub">Rolling 30-day</div></div>
+    <div class="stat bl"><div class="stat-label">ML Failure Alerts</div><div class="stat-val c-rd" id="kpi-predfail">0</div><div class="stat-sub">From trained model</div></div>
+    <div class="stat pu"><div class="stat-label">Total Customers</div><div class="stat-val c-pu" id="kpi-customers">0</div><div class="stat-sub">Active subscribers</div></div>
+    <div class="stat rd"><div class="stat-label">High Churn Risk</div><div class="stat-val c-rd" id="kpi-churn">0</div><div class="stat-sub">ML-identified</div></div>
+  </div>
+
+  <!-- Gauge + Node Status + Uptime -->
+  <div class="g3 mb">
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+      <div class="ctitle" style="justify-content:center">🏥 Network Health Score</div>
+      <div class="gauge-wrap" style="height:160px;width:200px">
+        <canvas id="gaugeChart"></canvas>
+        <div class="gauge-label">
+          <div class="gval c-or">72</div>
+          <div class="gunit">/ 100</div>
+          <div class="glbl">Moderate</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--txt3);text-align:center;max-width:180px">Score based on signal, latency, packet loss, and uptime</div>
+    </div>
+    <div class="card">
+      <div class="ctitle">🔵 Node Status Distribution</div>
+      <div class="ch-md"><canvas id="nodeStatusChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">📈 30-Day Network Uptime</div>
+      <div class="ch-md"><canvas id="uptimeChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Weekly + Events -->
+  <div class="g21 mb">
+    <div class="card">
+      <div class="ctitle">📅 7-Day Performance Trend<span class="ctitle-right">Signal · Bandwidth · Latency · Packet Loss</span></div>
+      <div class="ch-lg"><canvas id="weeklyChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">🔔 Recent Network Events <span class="ctitle-right" style="color:var(--cyan)">Includes ML alerts</span></div>
+      <div id="eventsFeed" style="max-height:340px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- Failure prob + Churn -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">⚠️ Failure Probability by Node</div>
+      <div class="ch-md"><canvas id="failureProbChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">📉 Monthly Churn Rate &amp; New Customers</div>
+      <div class="ch-md"><canvas id="churnChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Node tiles -->
+  <div class="card mb">
+    <div class="ctitle">📡 Live Node Health Tiles <span class="ctitle-right">All monitored nodes</span></div>
+    <div class="node-grid" id="nodeTiles"></div>
+  </div>
+
+  <!-- Region overview -->
+  <div class="card mb">
+    <div class="ctitle">🗺️ Region-wise Network Summary</div>
+    <div class="region-grid" id="regionCards"></div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 2  DATA PREPROCESSING  (Module 1)
+═══════════════════════════════════════════ -->
+<div class="page" id="page-preprocessing">
+<div style="padding:28px">
+  <div class="ph">
+    <h1>Data Collection &amp; Preprocessing</h1>
+    <p>Upload CSV datasets, detect and handle missing values, remove duplicates, clean and transform data for ML models</p>
+  </div>
+
+  <!-- Upload KPI stats (live from processed data) -->
+  <div class="stat-grid">
+    <div class="stat bl"><div class="stat-label">Original Records</div><div class="stat-val c-bl" id="prep-stat-original">—</div><div class="stat-sub">From uploaded CSV</div></div>
+    <div class="stat rd"><div class="stat-label">Duplicates Removed</div><div class="stat-val c-rd" id="prep-stat-duplicates">—</div><div class="stat-sub">Exact row matches</div></div>
+    <div class="stat or"><div class="stat-label">Missing Values Handled</div><div class="stat-val c-or" id="prep-stat-missing">—</div><div class="stat-sub">Imputed or dropped</div></div>
+    <div class="stat gr"><div class="stat-label">Final Clean Records</div><div class="stat-val c-gr" id="prep-stat-final">—</div><div class="stat-sub">Ready for ML</div></div>
+    <div class="stat cy"><div class="stat-label">Retention Rate</div><div class="stat-val c-cy" id="prep-stat-retention">—</div><div class="stat-sub">Records kept</div></div>
+    <div class="stat or"><div class="stat-label">Total Missing Cells</div><div class="stat-val c-or" id="prep-stat-total-missing">—</div><div class="stat-sub">Across all columns</div></div>
+    <div class="stat bl"><div class="stat-label">Raw Network Records</div><div class="stat-val c-bl">4,800</div><div class="stat-sub">From 20 nodes</div></div>
+    <div class="stat pu"><div class="stat-label">Raw Customer Records</div><div class="stat-val c-pu">48,320</div><div class="stat-sub">CRM data</div></div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="prep-status"></div>
+
+  <!-- Upload section -->
+  <div class="g2 mb">
+    <!-- Network upload -->
+    <div class="card">
+      <div class="ctitle">📡 Upload Network Dataset</div>
+      <label class="upload-zone" for="network-csv-input">
+        <div class="upload-zone-icon">📂</div>
+        <h4>Drop or click to upload Network CSV</h4>
+        <p>Required columns: node_id, signal_strength, latency, bandwidth, packet_loss, uptime, status</p>
+        <input type="file" id="network-csv-input" accept=".csv">
+      </label>
+      <div style="display:flex;gap:9px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn" id="btn-load-sample-network">⚡ Load Sample Network Data</button>
+        <button class="btn" data-download-sample="network">⬇ Download Sample CSV</button>
+        <button class="btn btn-gr" onclick="downloadCleanedCSV('network')" style="display:none" id="btn-download-cleaned-network">
+          💾 Download Cleaned Data
+        </button>
+      </div>
+    </div>
+    <!-- Customer upload -->
+    <div class="card">
+      <div class="ctitle">👥 Upload Customer Dataset</div>
+      <label class="upload-zone" for="customer-csv-input">
+        <div class="upload-zone-icon">📂</div>
+        <h4>Drop or click to upload Customer CSV</h4>
+        <p>Required columns: customer_id, plan, tenure, monthly_bill, data_usage_gb, call_duration_min, churn</p>
+        <input type="file" id="customer-csv-input" accept=".csv">
+      </label>
+      <div style="display:flex;gap:9px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn" id="btn-load-sample-customer">⚡ Load Sample Customer Data</button>
+        <button class="btn" data-download-sample="customer">⬇ Download Sample CSV</button>
+        <button class="btn btn-gr" onclick="downloadCleanedCSV('customer')" style="display:none" id="btn-download-cleaned-customer">
+          💾 Download Cleaned Data
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results section (shown after processing) -->
+  <div id="prep-results-section">
+
+    <!-- Raw preview -->
+    <div class="card mb">
+      <div class="ctitle">👁 Raw Dataset Preview <span class="ctitle-right">First 10 rows — before cleaning</span></div>
+      <div id="raw-preview-table"></div>
+    </div>
+
+    <!-- Missing value analysis -->
+    <div class="card mb">
+      <div class="ctitle">⚠️ Missing Value Analysis <span class="ctitle-right">By column</span></div>
+      <p style="font-size:12px;color:var(--txt3);margin-bottom:14px">Bar length represents missing percentage per column. Values are filled using mean (numeric) or mode (categorical) imputation.</p>
+      <div id="missing-analysis-wrap"></div>
+    </div>
+
+    <!-- Outlier detection analysis -->
+    <div class="card mb">
+      <div class="ctitle">🔍 Outlier Detection Analysis <span class="ctitle-right">IQR Method (1.5 × IQR)</span></div>
+      <p style="font-size:12px;color:var(--txt3);margin-bottom:14px">Outliers detected using Interquartile Range method: values below Q1 - 1.5×IQR or above Q3 + 1.5×IQR are flagged.</p>
+      <div id="outlier-analysis-wrap"></div>
+    </div>
+
+    <!-- Cleaned preview -->
+    <div class="card mb">
+      <div class="ctitle">✅ Cleaned Dataset Preview <span class="ctitle-right" style="color:var(--green)">After deduplication · imputation · normalisation</span></div>
+      <div id="cleaned-preview-table"></div>
+    </div>
+
+  </div>
+
+  <!-- Pipeline flow diagram (always visible) -->
+  <div class="card mb">
+    <div class="ctitle">🔄 Data Processing Pipeline</div>
+    <div class="pipeline">
+      <div class="pipe-step"><div class="pnum">1</div><h4>Raw Data Sources</h4><p>Network logs, CRM records, sensor feeds</p></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pnum">2</div><h4>CSV Upload</h4><p>Upload network or customer dataset via file picker or sample data</p></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pnum">3</div><h4>Deduplication</h4><p>Remove redundant sensor retries &amp; echoes</p></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pnum">4</div><h4>Missing Values</h4><p>Mean/median imputation; mode for categorical</p></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pnum">5</div><h4>Data Cleaning</h4><p>Type casting, format standardisation</p></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pnum">6</div><h4>Normalisation</h4><p>Min-Max scaling to [0,1] for numeric fields</p></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step" style="border-color:var(--accent);background:rgba(59,130,246,.06)"><div class="pnum">7</div><h4>ML-Ready Dataset</h4><p>Clean records passed to Module 2 &amp; 3</p></div>
+    </div>
+  </div>
+
+  <!-- Processing steps + summary -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">⚙️ Processing Steps Detail</div>
+      <div class="pstep"><div class="pstep-num">1</div><div><h4>Data Collection</h4><p>Signal strength, latency, bandwidth, packet loss and uptime collected every 5 minutes from all BTS towers, routers, and switches. Customer usage data from CRM.</p></div></div>
+      <div class="pstep"><div class="pstep-num">2</div><div><h4>Duplicate Removal</h4><p>Exact duplicate rows identified using full row comparison. Sensor retry duplicates removed across the network dataset.</p></div></div>
+      <div class="pstep"><div class="pstep-num">3</div><div><h4>Missing Value Handling</h4><p>Null values detected per column. Numeric columns imputed with column mean (signal, bandwidth) or median (latency, packet loss). Customer plan field filled by mode per region.</p></div></div>
+      <div class="pstep"><div class="pstep-num">4</div><div><h4>Data Cleaning &amp; Type Casting</h4><p>Numeric strings cast to float/int. Non-numeric junk values replaced with column means. Categorical fields preserved as-is.</p></div></div>
+      <div class="pstep"><div class="pstep-num">5</div><div><h4>Min-Max Normalisation</h4><p>All numeric features scaled to [0,1]: signal [0–100], latency [0–200ms], bandwidth [0–100%], packet loss [0–20%]. Ensures equal weight in ML algorithms.</p></div></div>
+      <div class="pstep"><div class="pstep-num">6</div><div><h4>Feature Engineering</h4><p>Derived features added including normalised columns (_norm suffix). Network health score = 0.4×signal + 0.3×(1−lat_norm) + 0.2×bw + 0.1×(1−pl_norm).</p></div></div>
+    </div>
+
+    <div>
+      <div class="card mb">
+        <div class="ctitle">📋 Dataset Summary</div>
+        <div class="mrow"><span class="mrow-lbl">Total Raw Records</span><span class="mrow-val c-bl">53,120</span></div>
+        <div class="mrow"><span class="mrow-lbl">After Deduplication</span><span class="mrow-val c-bl">52,978</span></div>
+        <div class="mrow"><span class="mrow-lbl">Missing Imputed</span><span class="mrow-val c-or">268</span></div>
+        <div class="mrow"><span class="mrow-lbl">Outliers Treated</span><span class="mrow-val c-or">122</span></div>
+        <div class="mrow"><span class="mrow-lbl">Final Clean Records</span><span class="mrow-val c-gr">49,154</span></div>
+        <div class="mrow"><span class="mrow-lbl">Network Features</span><span class="mrow-val c-cy">12</span></div>
+        <div class="mrow"><span class="mrow-lbl">Customer Features</span><span class="mrow-val c-cy">18</span></div>
+        <div class="mrow"><span class="mrow-lbl">Train / Test Split</span><span class="mrow-val">80% / 20%</span></div>
+        <div class="mrow"><span class="mrow-lbl">Data Quality Score</span><span class="mrow-val c-gr" id="kpi-quality">97.4%</span></div>
+      </div>
+
+      <div class="card">
+        <div class="ctitle">🏷️ Key Parameters</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          <span class="badge b-bl">Signal Strength</span><span class="badge b-bl">Latency (ms)</span>
+          <span class="badge b-bl">Bandwidth (%)</span><span class="badge b-bl">Packet Loss (%)</span>
+          <span class="badge b-bl">Node Uptime</span><span class="badge b-bl">Node Type</span>
+          <span class="badge b-pu">Customer ID</span><span class="badge b-pu">Monthly Bill</span>
+          <span class="badge b-pu">Data Usage</span><span class="badge b-pu">Call Duration</span>
+          <span class="badge b-pu">Service Plan</span><span class="badge b-pu">Tenure</span>
+          <span class="badge b-gr">Region</span><span class="badge b-gr">Timestamp</span>
+          <span class="badge b-cy">Health Score</span><span class="badge b-cy">Norm Features</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Per-feature table -->
+  <div class="card mb">
+    <div class="ctitle">📊 Per-Feature Preprocessing Report</div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr>
+          <th>Parameter</th><th>Raw Records</th><th>Missing</th><th>Outliers</th>
+          <th>Clean Records</th><th>Retention</th><th>Data Type</th><th>Method</th>
+        </tr></thead>
+        <tbody id="prepTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Correlation heatmap -->
+  <div class="card mb">
+    <div class="ctitle">🔗 Feature Correlation Matrix (Network Parameters)</div>
+    <p style="font-size:12px;color:var(--txt3);margin-bottom:14px">Pearson correlation between key network features. Strong negative correlations (red) show features that move in opposite directions.</p>
+    <div id="corrHeatmap"></div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 3  FAILURE PREDICTION  (Module 2)
+═══════════════════════════════════════════ -->
+<div class="page" id="page-network">
+<div style="padding:28px">
+  <div class="ph">
+    <h1>Network Failure Prediction</h1>
+    <p>Logistic Regression and Naïve Bayes models trained on the processed network dataset to predict node failures</p>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-gr" onclick="exportNetworkPDF()">📄 Export Network Report (PDF)</button>
+      <button class="btn btn-cy" onclick="exportNetworkExcel()">📊 Export Network Data (Excel)</button>
+    </div>
+  </div>
+
+  <!-- KPI cards (dynamic from ML) -->
+  <div class="stat-grid">
+    <div class="stat bl"><div class="stat-label">Avg Signal Strength</div><div class="stat-val c-bl" id="net-kpi-signal">—</div><div class="stat-sub">From processed dataset</div></div>
+    <div class="stat or"><div class="stat-label">Avg Latency</div><div class="stat-val c-or" id="net-kpi-latency">—</div><div class="stat-sub">Network-wide</div></div>
+    <div class="stat rd"><div class="stat-label">Avg Packet Loss</div><div class="stat-val c-rd" id="net-kpi-pl">—</div><div class="stat-sub">Current dataset</div></div>
+    <div class="stat gr"><div class="stat-label">Network Health</div><div class="stat-val c-gr" id="net-kpi-health">—</div><div class="stat-sub">Computed from features</div></div>
+    <div class="stat rd"><div class="stat-label">Failure Predictions</div><div class="stat-val c-rd" id="net-kpi-failures">—</div><div class="stat-sub">Nodes flagged</div></div>
+    <div class="stat gr"><div class="stat-label">Model Accuracy</div><div class="stat-val c-gr" id="net-kpi-accuracy">—</div><div class="stat-sub">Logistic Regression</div></div>
+    <div class="stat cy"><div class="stat-label">Precision</div><div class="stat-val c-cy" id="net-kpi-precision">—</div><div class="stat-sub">True positive rate</div></div>
+    <div class="stat pu"><div class="stat-label">F1 Score</div><div class="stat-val c-pu" id="net-kpi-f1">—</div><div class="stat-sub">Harmonic mean</div></div>
+  </div>
+
+  <!-- 24h chart (static trend data) -->
+  <div class="card mb">
+    <div class="ctitle">📈 24-Hour Network Performance Trends<span class="ctitle-right">Signal · Bandwidth · Latency · Packet Loss</span></div>
+    <div class="ch-xl"><canvas id="netPerfChart"></canvas></div>
+  </div>
+
+  <!-- ML charts row 1 -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">📶 Signal Strength per Node <span class="ctitle-right" style="color:var(--cyan)">From processed dataset</span></div>
+      <div class="ch-lg"><canvas id="ml-signal-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">🎯 Failure Probability Distribution <span class="ctitle-right" style="color:var(--cyan)">Model output</span></div>
+      <div class="ch-lg"><canvas id="ml-prob-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ML charts row 2 -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">🔵 Latency vs Packet Loss — Normal / Failure <span class="ctitle-right" style="color:var(--cyan)">Scatter plot</span></div>
+      <div class="ch-lg"><canvas id="ml-scatter-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">🤖 Model Comparison — Logistic Regression vs Naïve Bayes</div>
+      <div class="ch-lg"><canvas id="ml-model-comp-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Early warning alerts -->
+  <div class="card mb">
+    <div class="ctitle">🚨 Early Warning Alerts <span class="ctitle-right" style="color:var(--red)">Generated by trained model — nodes with &gt;50% failure probability</span></div>
+    <div id="net-alerts-wrap"></div>
+  </div>
+
+  <!-- Per-node prediction table -->
+  <div class="card mb">
+    <div class="ctitle">📋 Per-Node Prediction Results <span class="ctitle-right" style="color:var(--cyan)">From trained Logistic Regression model</span></div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr>
+          <th>Node ID</th><th>Signal (%)</th><th>Latency (ms)</th><th>Bandwidth (%)</th>
+          <th>Packet Loss (%)</th><th>Prediction</th><th>Failure Prob.</th><th>Severity</th>
+        </tr></thead>
+        <tbody id="ml-pred-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Model evaluation cards (dynamic) -->
+  <div class="card mb">
+    <div class="ctitle">🤖 ML Model Evaluation Results <span class="ctitle-right" style="color:var(--cyan)">Trained on processed dataset — 80/20 split</span></div>
+    <div class="model-grid" id="net-model-cards"></div>
+  </div>
+
+  <!-- Confusion matrix -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">📊 Confusion Matrix — Logistic Regression</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+        <div style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:var(--r2);padding:20px;text-align:center">
+          <div style="font-size:11px;color:var(--txt3);margin-bottom:6px">TRUE POSITIVE</div>
+          <div style="font-size:36px;font-weight:900;color:var(--green)" id="conf-tp">—</div>
+          <div style="font-size:11px;color:var(--txt3)">Correctly predicted failures</div>
+        </div>
+        <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:var(--r2);padding:20px;text-align:center">
+          <div style="font-size:11px;color:var(--txt3);margin-bottom:6px">FALSE POSITIVE</div>
+          <div style="font-size:36px;font-weight:900;color:var(--red)" id="conf-fp">—</div>
+          <div style="font-size:11px;color:var(--txt3)">Normal flagged as failure</div>
+        </div>
+        <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:var(--r2);padding:20px;text-align:center">
+          <div style="font-size:11px;color:var(--txt3);margin-bottom:6px">FALSE NEGATIVE</div>
+          <div style="font-size:36px;font-weight:900;color:var(--orange)" id="conf-fn">—</div>
+          <div style="font-size:11px;color:var(--txt3)">Missed failures</div>
+        </div>
+        <div style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:var(--r2);padding:20px;text-align:center">
+          <div style="font-size:11px;color:var(--txt3);margin-bottom:6px">TRUE NEGATIVE</div>
+          <div style="font-size:36px;font-weight:900;color:var(--green)" id="conf-tn">—</div>
+          <div style="font-size:11px;color:var(--txt3)">Correctly predicted normal</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">📏 Failure Classification Thresholds</div>
+      <table class="tbl">
+        <thead><tr><th>Parameter</th><th>Normal</th><th>Warning</th><th>Critical</th></tr></thead>
+        <tbody>
+          <tr><td>Signal Strength</td><td class="mono c-gr">≥ 70%</td><td class="mono c-or">45–69%</td><td class="mono c-rd">&lt; 45%</td></tr>
+          <tr><td>Latency</td><td class="mono c-gr">≤ 25ms</td><td class="mono c-or">26–60ms</td><td class="mono c-rd">&gt; 60ms</td></tr>
+          <tr><td>Bandwidth</td><td class="mono c-gr">≥ 70%</td><td class="mono c-or">45–69%</td><td class="mono c-rd">&lt; 45%</td></tr>
+          <tr><td>Packet Loss</td><td class="mono c-gr">≤ 1%</td><td class="mono c-or">1–5%</td><td class="mono c-rd">&gt; 5%</td></tr>
+          <tr><td>Uptime</td><td class="mono c-gr">≥ 99%</td><td class="mono c-or">95–98%</td><td class="mono c-rd">&lt; 95%</td></tr>
+          <tr><td>Failure Prob.</td><td class="mono c-gr">&lt; 40%</td><td class="mono c-or">40–70%</td><td class="mono c-rd">&gt; 70%</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:16px">
+        <div class="ctitle" style="margin-bottom:10px">Network Health Score Formula</div>
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r1);padding:12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan)">
+          H = 0.4×Signal + 0.3×(1−Latency_norm)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;+ 0.2×Bandwidth + 0.1×(1−PacketLoss_norm)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature importance + Radar (static visual) -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">🎯 Node Health Radar — Comparison</div>
+      <div class="ch-lg"><canvas id="radarChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">🏆 Top Failure Prediction Features</div>
+      <div class="ch-lg"><canvas id="featureImpChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- All nodes table -->
+  <div class="card mb">
+    <div class="ctitle">📡 All Network Nodes — Live Parameter Status</div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>Node</th><th>Type</th><th>Region</th><th>Signal</th><th>Latency</th><th>Bandwidth</th><th>Packet Loss</th><th>Uptime</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="nodeTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 4  CUSTOMER BEHAVIOUR  (Module 3)
+═══════════════════════════════════════════ -->
+<div class="page" id="page-customers">
+<div style="padding:28px">
+  <div class="ph">
+    <h1>Customer Behaviour Mining</h1>
+    <p>K-Means segmentation, usage analysis, churn prediction via Random Forest, and high-risk customer identification</p>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-gr" onclick="exportCustomerPDF()">📄 Export Customer Report (PDF)</button>
+      <button class="btn btn-cy" onclick="exportCustomerExcel()">📊 Export Customer Data (Excel)</button>
+    </div>
+  </div>
+
+  <!-- KPI cards (dynamic from ML) -->
+  <div class="stat-grid">
+    <div class="stat pu"><div class="stat-label">Total Customers</div><div class="stat-val c-pu" id="cust-kpi-total">—</div><div class="stat-sub">From processed dataset</div></div>
+    <div class="stat rd"><div class="stat-label">Churn Rate</div><div class="stat-val c-rd" id="cust-kpi-churnrate">—</div><div class="stat-sub">Model predicted</div></div>
+    <div class="stat rd"><div class="stat-label">High Churn Risk</div><div class="stat-val c-rd" id="cust-kpi-highrisk">—</div><div class="stat-sub">&gt;65% probability</div></div>
+    <div class="stat gr"><div class="stat-label">Model Accuracy</div><div class="stat-val c-gr" id="cust-kpi-accuracy">—</div><div class="stat-sub">Logistic Regression</div></div>
+    <div class="stat or"><div class="stat-label">Avg Data Usage</div><div class="stat-val c-or" id="cust-kpi-avgdata">—</div><div class="stat-sub">GB per customer</div></div>
+    <div class="stat pu"><div class="stat-label">Avg Call Duration</div><div class="stat-val c-pu" id="cust-kpi-avgcalls">—</div><div class="stat-sub">Minutes per month</div></div>
+    <div class="stat bl"><div class="stat-label">Premium Segment</div><div class="stat-val c-bl" id="cust-kpi-premium">—</div><div class="stat-sub">K-Means cluster</div></div>
+    <div class="stat rd"><div class="stat-label">At-Risk Segment</div><div class="stat-val c-rd" id="cust-kpi-atrisk">—</div><div class="stat-sub">K-Means cluster</div></div>
+  </div>
+
+  <!-- Segmentation charts -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">🥧 K-Means Customer Segments (k=4) <span class="ctitle-right" style="color:var(--cyan)">From trained model</span></div>
+      <div class="ch-md"><canvas id="ml-segment-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">📊 Plan Distribution</div>
+      <div class="ch-md"><canvas id="ml-plan-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Churn analysis charts -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">📈 Churn Probability Distribution <span class="ctitle-right" style="color:var(--cyan)">Model output histogram</span></div>
+      <div class="ch-md"><canvas id="ml-churn-dist-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">📱 Data Usage vs Churn Probability <span class="ctitle-right" style="color:var(--cyan)">Scatter by risk level</span></div>
+      <div class="ch-md"><canvas id="ml-data-churn-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Tenure churn + Revenue -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">⏱ Tenure vs Avg Churn Probability <span class="ctitle-right" style="color:var(--cyan)">By tenure bucket</span></div>
+      <div class="ch-md"><canvas id="ml-tenure-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">💰 Monthly Revenue Trend (₹ Lakhs)</div>
+      <div class="ch-md"><canvas id="revenueChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Segments breakdown -->
+  <div class="card mb">
+    <div class="ctitle">👥 K-Means Segment Breakdown <span class="ctitle-right" style="color:var(--cyan)">Customer counts per cluster</span></div>
+    <div class="cseg"><div class="cseg-icon" style="background:rgba(139,92,246,.15)">💎</div><div class="cseg-info"><h4>Premium</h4><p>High bill + high data usage, long tenure — most valuable segment</p></div><div class="cseg-count c-pu" id="seg-premium">—</div></div>
+    <div class="cseg"><div class="cseg-icon" style="background:rgba(59,130,246,.15)">📱</div><div class="cseg-info"><h4>Standard</h4><p>Moderate and consistent usage patterns</p></div><div class="cseg-count c-bl" id="seg-standard">—</div></div>
+    <div class="cseg"><div class="cseg-icon" style="background:rgba(6,182,212,.15)">📞</div><div class="cseg-info"><h4>Basic</h4><p>Low data, primarily voice users</p></div><div class="cseg-count c-cy" id="seg-basic">—</div></div>
+    <div class="cseg"><div class="cseg-icon" style="background:rgba(239,68,68,.15)">⚠️</div><div class="cseg-info"><h4>At-Risk</h4><p>Short tenure, low usage — likely to churn</p></div><div class="cseg-count c-rd" id="seg-atrisk">—</div></div>
+  </div>
+
+  <!-- High risk table + Model comparison -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">🔴 High Churn Risk Customers <span class="ctitle-right" style="color:var(--cyan)">Sorted by probability</span></div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>Customer</th><th>Plan</th><th>Tenure</th><th>Bill</th><th>Data</th><th>Calls</th><th>Churn Prob.</th><th>Segment</th></tr></thead>
+          <tbody id="ml-churn-risk-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">🤖 Churn Prediction Model Comparison <span class="ctitle-right" style="color:var(--cyan)">RF vs LR vs NB</span></div>
+      <div class="model-grid" id="cust-model-cards" style="grid-template-columns:1fr"></div>
+    </div>
+  </div>
+
+  <!-- Full customer ML table -->
+  <div class="card mb">
+    <div class="ctitle">📋 Customer ML Results — All Records <span class="ctitle-right" style="color:var(--cyan)">Churn prediction + segmentation</span></div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>Customer</th><th>Plan</th><th>Tenure</th><th>Data (GB)</th><th>Calls (min)</th><th>Churn Prob.</th><th>Risk</th><th>Segment</th></tr></thead>
+        <tbody id="ml-customer-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Static data tables preserved -->
+  <div class="card mb">
+    <div class="ctitle">🔥 Customer Activity Heatmap — Weekday Usage (%)</div>
+    <p style="font-size:12px;color:var(--txt3);margin-bottom:12px">Average daily network activity per top premium customer. Green = high usage, yellow = moderate, red = low.</p>
+    <div class="heatmap-wrap" id="usageHeatmap"></div>
+  </div>
+
+  <div class="card mb">
+    <div class="ctitle">💎 Customer Lifetime Value — Top 10</div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>Rank</th><th>Customer</th><th>Plan</th><th>Tenure</th><th>Monthly Bill</th><th>Lifetime Value</th><th>Churn Risk</th></tr></thead>
+        <tbody id="clvTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card mb">
+    <div class="ctitle">📋 Customer Usage Records (All)</div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>Customer</th><th>Plan</th><th>Tenure</th><th>Monthly Bill</th><th>Data Used</th><th>Call Mins</th><th>CLV</th><th>Churn Risk</th><th>Segment</th></tr></thead>
+        <tbody id="customerTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 5  INTEGRATED ANALYTICS  (Module 4)
+═══════════════════════════════════════════ -->
+<div class="page" id="page-analytics">
+<div style="padding:28px">
+  <div class="ph">
+    <h1>Integrated Analytics Dashboard</h1>
+    <p>Unified view integrating Network Failure Prediction and Customer Behaviour Mining outputs with decision support</p>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-gr" onclick="exportAnalyticsPDF()">📄 Export PDF Report</button>
+      <button class="btn btn-cy" onclick="exportAnalyticsExcel()">📊 Export Excel Report</button>
+    </div>
+  </div>
+
+  <!-- Full KPI strip (dynamic from ML) -->
+  <div class="stat-grid">
+    <div class="stat pu"><div class="stat-label">Total Customers</div><div class="stat-val c-pu" id="dash-total-customers">—</div><div class="stat-sub">From customer dataset</div></div>
+    <div class="stat rd"><div class="stat-label">Failure Nodes</div><div class="stat-val c-rd" id="dash-fail-nodes">—</div><div class="stat-sub">ML predicted</div></div>
+    <div class="stat gr"><div class="stat-label">Network Health</div><div class="stat-val c-gr" id="dash-health">—</div><div class="stat-sub">Computed from features</div></div>
+    <div class="stat rd"><div class="stat-label">Churn Rate</div><div class="stat-val c-rd" id="dash-churn-pct">—</div><div class="stat-sub">ML predicted</div></div>
+    <div class="stat or"><div class="stat-label">High-Risk Customers</div><div class="stat-val c-or" id="dash-high-risk">—</div><div class="stat-sub">Churn model output</div></div>
+    <div class="stat gr"><div class="stat-label">Network Model Acc.</div><div class="stat-val c-gr" id="dash-net-accuracy">—</div><div class="stat-sub">Failure prediction</div></div>
+    <div class="stat cy"><div class="stat-label">Churn Model Acc.</div><div class="stat-val c-cy" id="dash-cust-accuracy">—</div><div class="stat-sub">Churn prediction</div></div>
+    <div class="stat cy"><div class="stat-label">Data Quality</div><div class="stat-val c-cy" id="kpi-processed">—</div><div class="stat-sub">Clean records</div></div>
+  </div>
+
+  <!-- System health bars -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">💪 System Health Status</div>
+      <div class="hbar-row"><div class="hbar-lbl">Network Uptime</div><div class="hbar-track"><div class="hbar-fill pf-gr" data-pct="97" style="width:0"></div></div><div class="hbar-val c-gr">97.4%</div></div>
+      <div class="hbar-row"><div class="hbar-lbl">Avg Signal Strength</div><div class="hbar-track"><div class="hbar-fill pf-bl" data-pct="68" style="width:0"></div></div><div class="hbar-val c-bl">68%</div></div>
+      <div class="hbar-row"><div class="hbar-lbl">Avg Bandwidth</div><div class="hbar-track"><div class="hbar-fill pf-gr" data-pct="69" style="width:0"></div></div><div class="hbar-val c-gr">69%</div></div>
+      <div class="hbar-row"><div class="hbar-lbl">Nodes Normal</div><div class="hbar-track"><div class="hbar-fill pf-gr" data-pct="55" style="width:0"></div></div><div class="hbar-val c-gr">11/20</div></div>
+      <div class="hbar-row"><div class="hbar-lbl">Premium Retention</div><div class="hbar-track"><div class="hbar-fill pf-pu" data-pct="94" style="width:0"></div></div><div class="hbar-val c-pu">94.2%</div></div>
+      <div class="hbar-row"><div class="hbar-lbl">Net Failure Accuracy</div><div class="hbar-track"><div class="hbar-fill pf-bl" data-pct="97" style="width:0"></div></div><div class="hbar-val c-bl" id="hbar-netacc">—</div></div>
+      <div class="hbar-row"><div class="hbar-lbl">Churn Pred. Accuracy</div><div class="hbar-track"><div class="hbar-fill pf-gr" data-pct="92" style="width:0"></div></div><div class="hbar-val c-gr" id="hbar-custacc">—</div></div>
+      <div class="hbar-row"><div class="hbar-lbl">Data Quality Score</div><div class="hbar-track"><div class="hbar-fill pf-cy" data-pct="97" style="width:0"></div></div><div class="hbar-val c-cy">97.4%</div></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">🤖 ML Model Accuracy Comparison</div>
+      <div class="ch-md"><canvas id="modelCompChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Combined charts from both modules -->
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">🌐 24-Hour Network Performance</div>
+      <div class="ch-lg"><canvas id="netPerfChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">💰 Monthly Revenue &amp; Customer Growth</div>
+      <div class="ch-lg"><canvas id="revenueChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">🔵 Node Status Distribution</div>
+      <div class="ch-md"><canvas id="nodeStatusChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">👥 Customer Segments (K-Means)</div>
+      <div class="ch-md"><canvas id="segmentChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ctitle">📉 Churn Rate Trend</div>
+      <div class="ch-md"><canvas id="churnChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">🗺️ Region Signal &amp; Uptime</div>
+      <div class="ch-md"><canvas id="regionChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Model Performance Leaderboard -->
+  <div class="card mb">
+    <div class="ctitle">🏆 ML Model Performance Leaderboard <span class="ctitle-right" style="color:var(--cyan)">Ranked by accuracy</span></div>
+    <div id="model-leaderboard-wrap"></div>
+  </div>
+
+  <!-- Dynamic recommendation cards -->
+  <div class="card mb">
+    <div class="ctitle">🧠 Decision Support Recommendations <span class="ctitle-right" style="color:var(--cyan)">Generated from ML model outputs</span></div>
+    <div class="rec-grid" id="dynamic-recs">
+      <div class="rec-card rc-cy"><h4>🔵 Loading…</h4><p>Recommendations will appear after the ML models process the datasets.</p></div>
+    </div>
+  </div>
+
+  <!-- Executive summary table -->
+  <div class="card mb">
+    <div class="ctitle">📊 Executive Summary — All KPIs with RAG Status</div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th>KPI</th><th>Current Value</th><th>Target</th><th>Status</th><th>Trend</th><th>Action Required</th></tr></thead>
+        <tbody>
+          <tr class="rag-orange"><td>Network Uptime</td><td class="mono c-or">97.4%</td><td class="mono">≥ 99%</td><td><span class="badge b-or">⚠ Below Target</span></td><td>↑ Improving</td><td>Resolve critical node failures</td></tr>
+          <tr class="rag-orange"><td>Avg Signal Strength</td><td class="mono c-or">68%</td><td class="mono">≥ 75%</td><td><span class="badge b-or">⚠ Below Target</span></td><td>↓ Degrading</td><td>Maintain/upgrade weak BTS towers</td></tr>
+          <tr class="rag-red"><td>Avg Latency</td><td class="mono c-rd">38 ms</td><td class="mono">≤ 30 ms</td><td><span class="badge b-rd">✕ Above Target</span></td><td>↑ Worsening</td><td>Investigate routing inefficiencies</td></tr>
+          <tr class="rag-red"><td>Avg Packet Loss</td><td class="mono c-rd">3.5%</td><td class="mono">≤ 1%</td><td><span class="badge b-rd">✕ Critical</span></td><td>↑ Worsening</td><td>Immediate hardware diagnostics</td></tr>
+          <tr class="rag-green"><td>Failure Pred. Accuracy</td><td class="mono c-gr" id="kag-netacc">—</td><td class="mono">≥ 80%</td><td><span class="badge b-gr">✓ On Target</span></td><td>→ Stable</td><td>Deploy to production</td></tr>
+          <tr class="rag-green"><td>Churn Pred. Accuracy</td><td class="mono c-gr" id="kag-custacc">—</td><td class="mono">≥ 80%</td><td><span class="badge b-gr">✓ On Target</span></td><td>↑ Improving</td><td>Monitor monthly</td></tr>
+          <tr class="rag-green"><td>NPS Score</td><td class="mono c-gr">62</td><td class="mono">≥ 50</td><td><span class="badge b-gr">✓ On Target</span></td><td>↑ Improving</td><td>Maintain engagement</td></tr>
+          <tr class="rag-orange"><td>Churn Rate (monthly)</td><td class="mono c-or" id="kag-churnrate">—</td><td class="mono">≤ 3%</td><td><span class="badge b-or">⚠ Above Target</span></td><td>→ Stable</td><td>Execute retention campaigns</td></tr>
+          <tr class="rag-green"><td>Premium Retention</td><td class="mono c-gr">94.2%</td><td class="mono">≥ 90%</td><td><span class="badge b-gr">✓ On Target</span></td><td>↑ Improving</td><td>Continue loyalty programmes</td></tr>
+          <tr class="rag-green"><td>Revenue (monthly)</td><td class="mono c-gr">₹57.2L</td><td class="mono">₹56L</td><td><span class="badge b-gr">✓ On Target</span></td><td>↑ Growing</td><td>Push 5G upgrade campaigns</td></tr>
+          <tr class="rag-green"><td>Data Quality Score</td><td class="mono c-gr">97.4%</td><td class="mono">≥ 95%</td><td><span class="badge b-gr">✓ On Target</span></td><td>→ Stable</td><td>Automate pipeline</td></tr>
+          <tr class="rag-red"><td>Nodes at Failure Risk</td><td class="mono c-rd" id="kag-failnodes">—</td><td class="mono">0</td><td><span class="badge b-rd">✕ Critical</span></td><td>↑ Worsening</td><td>Emergency field dispatch</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/preprocess.js"></script>
+<script src="js/ml.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  /* health bar animation */
+  setTimeout(function () {
+    document.querySelectorAll('.hbar-fill[data-pct]').forEach(function (b) {
+      b.style.width = b.dataset.pct + '%';
+    });
+  }, 900);
+  /* progress bars */
+  setTimeout(function () {
+    document.querySelectorAll('.pfill[data-pct]').forEach(function (b) {
+      b.style.width = b.dataset.pct + '%';
+    });
+  }, 700);
+
+  /* Poll for ML results and update dynamic elements */
+  function updateDynamicValues() {
+    const netML  = window.mlResults && window.mlResults.network;
+    const custML = window.mlResults && window.mlResults.customer;
+
+    // Update sidebar badge
+    const nb = document.getElementById('nb-alerts');
+    if (nb && netML) nb.textContent = netML.alerts.length;
+
+    // Update RAG table values
+    if (netML) {
+      var el = document.getElementById('kag-netacc');
+      if (el) el.textContent = netML.primaryMetrics.accuracy + '%';
+      el = document.getElementById('kag-failnodes');
+      if (el) el.textContent = netML.failureCount;
+      el = document.getElementById('hbar-netacc');
+      if (el) el.textContent = netML.primaryMetrics.accuracy + '%';
+    }
+    if (custML) {
+      var el = document.getElementById('kag-custacc');
+      if (el) el.textContent = custML.metrics.accuracy + '%';
+      el = document.getElementById('kag-churnrate');
+      if (el) el.textContent = custML.churnRate + '%';
+      el = document.getElementById('hbar-custacc');
+      if (el) el.textContent = custML.metrics.accuracy + '%';
+    }
+  }
+  setTimeout(updateDynamicValues, 1800);
+  setTimeout(updateDynamicValues, 3500);
+});
+</script>
+</body>
+</html>

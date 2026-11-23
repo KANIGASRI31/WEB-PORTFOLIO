@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>TelecomIQ Debug Tool</title>
+<style>
+body{font-family:monospace;padding:20px;background:#1a1a1a;color:#0f0}
+button{padding:10px 20px;margin:5px;background:#333;color:#0f0;border:1px solid #0f0;cursor:pointer;font-size:14px}
+button:hover{background:#0f0;color:#000}
+.result{background:#000;padding:15px;margin:10px 0;border:1px solid #0f0;white-space:pre-wrap;max-height:400px;overflow-y:auto}
+.error{color:#f00;border-color:#f00}
+.success{color:#0f0;border-color:#0f0}
+h2{color:#0ff}
+</style>
+</head>
+<body>
+<h1>🔍 TelecomIQ Debug Tool</h1>
+<p>Click buttons to diagnose why charts are empty:</p>
+
+<button onclick="test1()">1️⃣ Check Chart.js Loaded</button>
+<button onclick="test2()">2️⃣ Check Data Loaded</button>
+<button onclick="test3()">3️⃣ Check ML Results</button>
+<button onclick="test4()">4️⃣ Check Canvas Elements</button>
+<button onclick="test5()">5️⃣ Force Render Charts</button>
+<button onclick="testAll()">🚀 Run All Tests</button>
+
+<div id="output"></div>
+
+<script>
+function log(msg, isError = false) {
+  const div = document.createElement('div');
+  div.className = 'result ' + (isError ? 'error' : 'success');
+  div.textContent = msg;
+  document.getElementById('output').appendChild(div);
+}
+
+function test1() {
+  document.getElementById('output').innerHTML = '';
+  log('TEST 1: Checking Chart.js...');
+  if (typeof Chart === 'undefined') {
+    log('❌ FAIL: Chart.js is NOT loaded!', true);
+    log('Fix: Check if CDN link is correct in index.html', true);
+  } else {
+    log('✅ PASS: Chart.js version ' + Chart.version + ' is loaded');
+  }
+}
+
+function test2() {
+  document.getElementById('output').innerHTML = '';
+  log('TEST 2: Checking if data is loaded...');
+  
+  if (!window.processedCustomer) {
+    log('❌ FAIL: window.processedCustomer is undefined', true);
+    log('Fix: You need to load sample data first!', true);
+    log('  1. Go to Data Preprocessing page', true);
+    log('  2. Click "Load Sample Customer Data"', true);
+    return;
+  }
+  
+  log('✅ PASS: Customer data is loaded');
+  log('  - Rows: ' + window.processedCustomer.rows.length);
+  log('  - Final Count: ' + window.processedCustomer.finalCount);
+}
+
+function test3() {
+  document.getElementById('output').innerHTML = '';
+  log('TEST 3: Checking ML results...');
+  
+  if (!window.mlResults) {
+    log('❌ FAIL: window.mlResults is undefined', true);
+    log('Fix: ML models have not run yet', true);
+    return;
+  }
+  
+  if (!window.mlResults.customer) {
+    log('❌ FAIL: window.mlResults.customer is undefined', true);
+    log('Fix: Customer ML has not run', true);
+    return;
+  }
+  
+  const cust = window.mlResults.customer;
+  log('✅ PASS: Customer ML results exist');
+  log('  - Total Customers: ' + cust.totalCustomers);
+  log('  - High Risk: ' + cust.highRisk);
+  log('  - Churn Rate: ' + cust.churnRate + '%');
+  log('  - Primary Model: ' + cust.primaryModel);
+  log('  - Accuracy: ' + cust.primaryMetrics.accuracy + '%');
+  log('\nSegment Counts:');
+  log(JSON.stringify(cust.segCounts, null, 2));
+}
+
+function test4() {
+  document.getElementById('output').innerHTML = '';
+  log('TEST 4: Checking canvas elements...');
+  
+  const canvases = [
+    'ml-segment-chart',
+    'ml-plan-chart', 
+    'ml-churn-dist-chart',
+    'ml-data-churn-chart',
+    'ml-tenure-chart'
+  ];
+  
+  let allFound = true;
+  canvases.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) {
+      log('❌ MISSING: #' + id + ' not found in HTML', true);
+      allFound = false;
+    } else {
+      log('✅ FOUND: #' + id + ' exists');
+    }
+  });
+  
+  if (allFound) {
+    log('\n✅ PASS: All canvas elements exist');
+  } else {
+    log('\n❌ FAIL: Some canvas elements are missing', true);
+  }
+}
+
+function test5() {
+  document.getElementById('output').innerHTML = '';
+  log('TEST 5: Force rendering charts...');
+  
+  if (!window.processedCustomer) {
+    log('❌ FAIL: No data loaded. Load data first!', true);
+    return;
+  }
+  
+  if (typeof window.renderCustomerMLUI !== 'function') {
+    log('❌ FAIL: renderCustomerMLUI function not found', true);
+    return;
+  }
+  
+  log('Calling window.renderCustomerMLUI()...');
+  try {
+    window.renderCustomerMLUI();
+    log('✅ SUCCESS: Function executed without errors');
+    log('\nNow go check the Customer Behaviour page!');
+    log('If charts are still empty, check browser console (F12) for errors.');
+  } catch (e) {
+    log('❌ ERROR: ' + e.message, true);
+    log('Stack trace: ' + e.stack, true);
+  }
+}
+
+function testAll() {
+  document.getElementById('output').innerHTML = '';
+  log('='.repeat(60));
+  log('RUNNING ALL DIAGNOSTIC TESTS');
+  log('='.repeat(60) + '\n');
+  
+  setTimeout(() => { test1(); }, 100);
+  setTimeout(() => { test2(); }, 500);
+  setTimeout(() => { test3(); }, 900);
+  setTimeout(() => { test4(); }, 1300);
+  setTimeout(() => { 
+    log('\n' + '='.repeat(60));
+    log('DIAGNOSTIC COMPLETE');
+    log('='.repeat(60));
+    log('\nIf all tests passed, click "Force Render Charts" button');
+  }, 1700);
+}
+
+// Auto-run on load
+window.onload = function() {
+  log('🔍 Debug tool loaded. Click "Run All Tests" to start.');
+};
+</script>
+</body>
+</html>
