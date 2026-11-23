@@ -1,0 +1,142 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="HealthGuard AI - Healthcare Threat Intelligence & IOC Tracking">
+  <title>HealthGuard AI — Threat Intelligence</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">☰</button>
+
+<div class="app-layout">
+  <!-- ─── Sidebar ─── -->
+  <nav class="sidebar" aria-label="Main navigation">
+    <a class="sidebar__logo" href="index.html">
+      <img src="assets/logo.svg" alt="HealthGuard AI logo">
+      <div class="sidebar__logo-text">
+        <span>HealthGuard AI</span>
+        <span class="sidebar__logo-sub">Security Monitor</span>
+      </div>
+    </a>
+    <div class="sidebar__section-label">Overview</div>
+    <ul class="nav-list"><li><a href="index.html" class="nav-link"><span class="nav-icon">📊</span> Dashboard</a></li></ul>
+    <div class="sidebar__section-label">Reconnaissance</div>
+    <ul class="nav-list">
+      <li><a href="targets.html"      class="nav-link" data-page="targets"><span class="nav-icon">🏥</span> Asset Inventory</a></li>
+      <li><a href="scanner.html"      class="nav-link" data-page="scanner"><span class="nav-icon">🔍</span> Network Scanner</a></li>
+      <li><a href="network.html"      class="nav-link" data-page="network"><span class="nav-icon">🌐</span> Network Map</a></li>
+    </ul>
+    <div class="sidebar__section-label">AI Detection</div>
+    <ul class="nav-list">
+      <li><a href="threat-intel.html" class="nav-link" data-page="threat-intel"><span class="nav-icon">⚡</span> Threat Intel</a></li>
+      <li><a href="ai-analysis.html"  class="nav-link" data-page="ai-analysis"><span class="nav-icon">🤖</span> AI Analysis</a></li>
+    </ul>
+    <div class="sidebar__section-label">Response</div>
+    <ul class="nav-list">
+      <li><a href="incidents.html"    class="nav-link" data-page="incidents"><span class="nav-icon">🚨</span> Incidents</a></li>
+      <li><a href="reports.html"      class="nav-link" data-page="reports"><span class="nav-icon">📋</span> Reports</a></li>
+    </ul>
+    <div class="sidebar__section-label">System</div>
+    <ul class="nav-list"><li><a href="settings.html" class="nav-link" data-page="settings"><span class="nav-icon">⚙️</span> Settings</a></li></ul>
+  </nav>
+
+  <!-- ─── Main Content ─── -->
+  <main class="main-content" id="main-content">
+    <header class="page-header">
+      <div>
+        <h1>Healthcare Threat Intelligence</h1>
+        <p class="page-subtitle">IOC Tracking — Healthcare-Targeted Threat Indicators</p>
+      </div>
+      <div class="page-header__actions">
+        <span class="badge badge--info" id="ioc-count">25 indicators</span>
+        <button class="btn btn--ghost btn--sm" onclick="TV.setTheme('dark')">🌙</button>
+        <button class="btn btn--ghost btn--sm" onclick="TV.setTheme('light')">☀️</button>
+      </div>
+    </header>
+
+    <!-- IOC Type Stats -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1rem;margin-bottom:1.5rem" role="list" aria-label="IOC counts by type">
+      <div class="card card--stat" role="listitem" style="padding:1rem">
+        <div class="stat-card__value" id="stat-ioc-total" aria-label="Total IOCs">—</div>
+        <div class="stat-card__label">Total IOCs</div>
+      </div>
+      <div class="card card--stat" role="listitem" style="padding:1rem">
+        <div class="stat-card__value" id="stat-ioc-ip" aria-label="IP indicators">—</div>
+        <div class="stat-card__label">IP Addresses</div>
+      </div>
+      <div class="card card--stat" role="listitem" style="padding:1rem">
+        <div class="stat-card__value" id="stat-ioc-domain" aria-label="Domain indicators">—</div>
+        <div class="stat-card__label">Domains</div>
+      </div>
+      <div class="card card--stat" role="listitem" style="padding:1rem">
+        <div class="stat-card__value" id="stat-ioc-hash" aria-label="Hash indicators">—</div>
+        <div class="stat-card__label">File Hashes</div>
+      </div>
+      <div class="card card--stat" role="listitem" style="padding:1rem">
+        <div class="stat-card__value" id="stat-ioc-url" aria-label="URL indicators">—</div>
+        <div class="stat-card__label">URLs</div>
+      </div>
+      <div class="card card--stat" role="listitem" style="padding:1rem">
+        <div class="stat-card__value" id="stat-ioc-email" aria-label="Email indicators">—</div>
+        <div class="stat-card__label">Emails</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar" role="search" aria-label="Filter indicators">
+      <input type="search" id="ioc-search" class="form-control search-input" placeholder="Search indicators, sources, tags…" aria-label="Search indicators">
+      <select id="ioc-type-filter" class="form-control" aria-label="Filter by IOC type">
+        <option value="">All Types</option>
+        <option value="ip">IP Address</option>
+        <option value="domain">Domain</option>
+        <option value="url">URL</option>
+        <option value="hash">File Hash</option>
+        <option value="email">Email</option>
+      </select>
+      <select id="ioc-sev-filter" class="form-control" aria-label="Filter by severity">
+        <option value="">All Severities</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <select id="ioc-source-filter" class="form-control" aria-label="Filter by source">
+        <option value="">All Sources</option>
+        <!-- Populated dynamically by threat-intel.js -->
+      </select>
+    </div>
+
+    <!-- IOC Table -->
+    <div class="table-wrapper">
+      <table id="ioc-table" class="data-table" aria-label="Indicators of compromise">
+        <thead>
+          <tr>
+            <th data-col="0" style="width:90px">Type</th>
+            <th data-col="1">Value / Indicator</th>
+            <th data-col="2" style="width:160px">Confidence</th>
+            <th data-col="3" style="width:130px">Source</th>
+            <th data-col="4">Tags</th>
+            <th data-col="5" style="width:110px">Last Seen</th>
+            <th data-col="6" style="width:90px">Severity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Populated by threat-intel.js -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/main.js"></script>
+<script src="js/threat-intel.js"></script>
+</body>
+</html>

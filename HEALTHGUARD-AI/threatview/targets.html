@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealthGuard AI — Asset Inventory</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">☰</button>
+<div class="app-layout">
+  <nav class="sidebar" aria-label="Main navigation">
+    <a class="sidebar__logo" href="index.html">
+      <img src="assets/logo.svg" alt="HealthGuard AI logo">
+      <div class="sidebar__logo-text">
+        <span>HealthGuard AI</span>
+        <span class="sidebar__logo-sub">Security Monitor</span>
+      </div>
+    </a>
+    <div class="sidebar__section-label">Overview</div>
+    <ul class="nav-list"><li><a href="index.html" class="nav-link"><span class="nav-icon">📊</span> Dashboard</a></li></ul>
+    <div class="sidebar__section-label">Reconnaissance</div>
+    <ul class="nav-list">
+      <li><a href="targets.html"      class="nav-link" data-page="targets"><span class="nav-icon">🏥</span> Asset Inventory</a></li>
+      <li><a href="scanner.html"      class="nav-link" data-page="scanner"><span class="nav-icon">🔍</span> Network Scanner</a></li>
+      <li><a href="network.html"      class="nav-link" data-page="network"><span class="nav-icon">🌐</span> Network Map</a></li>
+    </ul>
+    <div class="sidebar__section-label">AI Detection</div>
+    <ul class="nav-list">
+      <li><a href="threat-intel.html" class="nav-link" data-page="threat-intel"><span class="nav-icon">⚡</span> Threat Intel</a></li>
+      <li><a href="ai-analysis.html"  class="nav-link" data-page="ai-analysis"><span class="nav-icon">🤖</span> AI Analysis</a></li>
+    </ul>
+    <div class="sidebar__section-label">Response</div>
+    <ul class="nav-list">
+      <li><a href="incidents.html"    class="nav-link" data-page="incidents"><span class="nav-icon">🚨</span> Incidents</a></li>
+      <li><a href="reports.html"      class="nav-link" data-page="reports"><span class="nav-icon">📋</span> Reports</a></li>
+    </ul>
+    <div class="sidebar__section-label">System</div>
+    <ul class="nav-list"><li><a href="settings.html" class="nav-link" data-page="settings"><span class="nav-icon">⚙️</span> Settings</a></li></ul>
+  </nav>
+
+  <main class="main-content">
+    <header class="page-header">
+      <div>
+        <h1>Asset Inventory</h1>
+        <p class="page-subtitle">Healthcare Network Assets &amp; Vulnerability Assessment</p>
+      </div>
+      <div class="page-header__actions">
+        <button class="btn btn--primary btn--sm" onclick="openAddAssetModal()">+ Add Asset</button>
+        <button class="btn btn--ghost btn--sm" data-theme-btn="dark" onclick="TV.setTheme('dark')">🌙</button>
+        <button class="btn btn--ghost btn--sm" data-theme-btn="light" onclick="TV.setTheme('light')">☀️</button>
+      </div>
+    </header>
+
+    <!-- Stats Row -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.5rem" id="asset-stats"></div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <input type="text" class="form-control search-input" id="search-assets" placeholder="🔍 Search assets, IPs, departments…">
+      <select class="form-control" id="filter-type">
+        <option value="">All Types</option>
+        <option value="server">Server</option>
+        <option value="medical">Medical Device</option>
+        <option value="endpoint">Workstation</option>
+        <option value="network">Network</option>
+      </select>
+      <select class="form-control" id="filter-criticality">
+        <option value="">All Criticality</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <select class="form-control" id="filter-status">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="in-progress">In Progress</option>
+      </select>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="data-table" id="assets-table">
+        <thead>
+          <tr>
+            <th onclick="TV.sortTable('assets-table',0)">Asset Name</th>
+            <th onclick="TV.sortTable('assets-table',1)">IP Address</th>
+            <th onclick="TV.sortTable('assets-table',2)">Type</th>
+            <th onclick="TV.sortTable('assets-table',3)">OS / Firmware</th>
+            <th onclick="TV.sortTable('assets-table',4)">Department</th>
+            <th onclick="TV.sortTable('assets-table',5)">Criticality</th>
+            <th onclick="TV.sortTable('assets-table',6)">Risk Score</th>
+            <th onclick="TV.sortTable('assets-table',7)">Status</th>
+            <th onclick="TV.sortTable('assets-table',8)">Last Scanned</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="assets-tbody"></tbody>
+      </table>
+    </div>
+    <div id="assets-count" class="text-muted" style="font-size:0.8rem;margin-top:0.75rem"></div>
+  </main>
+</div>
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+<!-- Asset Detail Modal -->
+<div class="modal-overlay" id="asset-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-asset-title" style="max-width:600px">
+    <div class="modal__header">
+      <h3 id="modal-asset-title">Asset Details</h3>
+      <button class="modal__close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-asset-body"></div>
+    <div class="modal__footer">
+      <button class="btn btn--secondary btn--sm" onclick="closeModal()">Close</button>
+      <a href="scanner.html" class="btn btn--primary btn--sm">Scan Asset →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Add Asset Modal -->
+<div class="modal-overlay" id="add-asset-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="add-asset-modal-title" style="max-width:560px">
+    <div class="modal__header">
+      <h3 id="add-asset-modal-title">➕ Register New Asset</h3>
+      <button class="modal__close" onclick="closeAddAssetModal()">✕</button>
+    </div>
+    <div id="add-asset-modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <!-- (a) Asset Name -->
+        <div class="form-group">
+          <label for="aa-name">Asset Name *</label>
+          <input class="form-control" type="text" id="aa-name"
+                 placeholder="e.g. EMR-Server-02" autocomplete="off">
+        </div>
+        <!-- (b) IP / Address -->
+        <div class="form-group">
+          <label for="aa-address">IP / Address *</label>
+          <input class="form-control" type="text" id="aa-address"
+                 placeholder="e.g. 192.168.10.11" autocomplete="off">
+        </div>
+        <!-- (c) Type -->
+        <div class="form-group">
+          <label for="aa-type">Type</label>
+          <select class="form-control" id="aa-type">
+            <option value="server">Server</option>
+            <option value="medical">Medical Device</option>
+            <option value="endpoint">Workstation</option>
+            <option value="network">Network</option>
+          </select>
+        </div>
+        <!-- (d) OS / Firmware -->
+        <div class="form-group">
+          <label for="aa-os">OS / Firmware</label>
+          <input class="form-control" type="text" id="aa-os"
+                 placeholder="e.g. Ubuntu 22.04">
+        </div>
+        <!-- (e) Department -->
+        <div class="form-group">
+          <label for="aa-dept">Department</label>
+          <input class="form-control" type="text" id="aa-dept"
+                 placeholder="e.g. Radiology">
+        </div>
+        <!-- (f) Criticality -->
+        <div class="form-group">
+          <label for="aa-criticality">Criticality</label>
+          <select class="form-control" id="aa-criticality">
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <!-- (g) Tags — full width -->
+        <div class="form-group" style="grid-column:1/-1">
+          <label for="aa-tags">Tags</label>
+          <input class="form-control" type="text" id="aa-tags"
+                 placeholder="comma-separated, e.g. EMR,linux,critical">
+        </div>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost btn--sm" onclick="closeAddAssetModal()">Cancel</button>
+      <button class="btn btn--primary btn--sm" onclick="submitAddAsset()">Save Asset</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/main.js"></script>
+<script src="js/targets.js"></script>
+</body>
+</html>
