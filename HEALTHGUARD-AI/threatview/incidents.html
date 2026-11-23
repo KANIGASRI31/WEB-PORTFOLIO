@@ -1,0 +1,103 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealthGuard AI — Security Incidents &amp; Response</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/incidents.css">
+</head>
+<body>
+<button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+<div class="app-layout">
+  <nav class="sidebar" aria-label="Main navigation">
+    <a class="sidebar__logo" href="index.html">
+      <img src="assets/logo.svg" alt="HealthGuard AI logo">
+      <div class="sidebar__logo-text">
+        <span>HealthGuard AI</span>
+        <span class="sidebar__logo-sub">Security Monitor</span>
+      </div>
+    </a>
+    <div class="sidebar__section-label">Overview</div>
+    <ul class="nav-list"><li><a href="index.html" class="nav-link"><span class="nav-icon">📊</span> Dashboard</a></li></ul>
+    <div class="sidebar__section-label">Reconnaissance</div>
+    <ul class="nav-list">
+      <li><a href="targets.html"      class="nav-link" data-page="targets"><span class="nav-icon">🏥</span> Asset Inventory</a></li>
+      <li><a href="scanner.html"      class="nav-link" data-page="scanner"><span class="nav-icon">🔍</span> Network Scanner</a></li>
+      <li><a href="network.html"      class="nav-link" data-page="network"><span class="nav-icon">🌐</span> Network Map</a></li>
+    </ul>
+    <div class="sidebar__section-label">AI Detection</div>
+    <ul class="nav-list">
+      <li><a href="threat-intel.html" class="nav-link" data-page="threat-intel"><span class="nav-icon">⚡</span> Threat Intel</a></li>
+      <li><a href="ai-analysis.html"  class="nav-link" data-page="ai-analysis"><span class="nav-icon">🤖</span> AI Analysis</a></li>
+    </ul>
+    <div class="sidebar__section-label">Response</div>
+    <ul class="nav-list">
+      <li><a href="incidents.html"    class="nav-link" data-page="incidents"><span class="nav-icon">🚨</span> Incidents</a></li>
+      <li><a href="reports.html"      class="nav-link" data-page="reports"><span class="nav-icon">📋</span> Reports</a></li>
+    </ul>
+    <div class="sidebar__section-label">System</div>
+    <ul class="nav-list"><li><a href="settings.html" class="nav-link" data-page="settings"><span class="nav-icon">⚙️</span> Settings</a></li></ul>
+  </nav>
+
+  <main class="main-content">
+    <header class="page-header">
+      <div>
+        <h1>Security Alert &amp; Response Management</h1>
+        <p class="page-subtitle">Incident Investigation, Response Tracking &amp; Remediation</p>
+      </div>
+      <div class="page-header__actions">
+        <button class="btn btn--ghost btn--sm" data-theme-btn="dark" onclick="TV.setTheme('dark')">🌙</button>
+        <button class="btn btn--ghost btn--sm" data-theme-btn="light" onclick="TV.setTheme('light')">☀️</button>
+      </div>
+    </header>
+
+    <!-- Incident Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem" id="incident-stats"></div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <input type="text" class="form-control search-input" id="search-incidents" placeholder="🔍 Search incidents…">
+      <select class="form-control" id="filter-inc-severity">
+        <option value="">All Severity</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+      </select>
+      <select class="form-control" id="filter-inc-status">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="investigating">Investigating</option>
+        <option value="resolved">Resolved</option>
+        <option value="closed">Closed</option>
+      </select>
+    </div>
+
+    <!-- Incidents Grid -->
+    <div id="incidents-grid"></div>
+  </main>
+</div>
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+<!-- Incident Detail Modal -->
+<div class="modal-overlay" id="incident-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="incident-modal-title" style="max-width:720px">
+    <div class="modal__header">
+      <h3 id="incident-modal-title">Incident Detail</h3>
+      <button class="modal__close" onclick="closeIncidentModal()">✕</button>
+    </div>
+    <div id="incident-modal-body"></div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost btn--sm" onclick="closeIncidentModal()">Close</button>
+      <a href="reports.html" class="btn btn--secondary btn--sm">Generate Report</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/main.js"></script>
+<script src="js/incidents.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="HealthGuard AI - Network Scanner & Vulnerability Assessment">
+  <title>HealthGuard AI — Network Scanner</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/scanner.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">☰</button>
+
+<div class="app-layout">
+  <!-- ─── Sidebar ─── -->
+  <nav class="sidebar" aria-label="Main navigation">
+    <a class="sidebar__logo" href="index.html">
+      <img src="assets/logo.svg" alt="HealthGuard AI logo">
+      <div class="sidebar__logo-text">
+        <span>HealthGuard AI</span>
+        <span class="sidebar__logo-sub">Security Monitor</span>
+      </div>
+    </a>
+    <div class="sidebar__section-label">Overview</div>
+    <ul class="nav-list"><li><a href="index.html" class="nav-link"><span class="nav-icon">📊</span> Dashboard</a></li></ul>
+    <div class="sidebar__section-label">Reconnaissance</div>
+    <ul class="nav-list">
+      <li><a href="targets.html"      class="nav-link" data-page="targets"><span class="nav-icon">🏥</span> Asset Inventory</a></li>
+      <li><a href="scanner.html"      class="nav-link" data-page="scanner"><span class="nav-icon">🔍</span> Network Scanner</a></li>
+      <li><a href="network.html"      class="nav-link" data-page="network"><span class="nav-icon">🌐</span> Network Map</a></li>
+    </ul>
+    <div class="sidebar__section-label">AI Detection</div>
+    <ul class="nav-list">
+      <li><a href="threat-intel.html" class="nav-link" data-page="threat-intel"><span class="nav-icon">⚡</span> Threat Intel</a></li>
+      <li><a href="ai-analysis.html"  class="nav-link" data-page="ai-analysis"><span class="nav-icon">🤖</span> AI Analysis</a></li>
+    </ul>
+    <div class="sidebar__section-label">Response</div>
+    <ul class="nav-list">
+      <li><a href="incidents.html"    class="nav-link" data-page="incidents"><span class="nav-icon">🚨</span> Incidents</a></li>
+      <li><a href="reports.html"      class="nav-link" data-page="reports"><span class="nav-icon">📋</span> Reports</a></li>
+    </ul>
+    <div class="sidebar__section-label">System</div>
+    <ul class="nav-list"><li><a href="settings.html" class="nav-link" data-page="settings"><span class="nav-icon">⚙️</span> Settings</a></li></ul>
+  </nav>
+
+  <!-- ─── Main Content ─── -->
+  <main class="main-content" id="main-content">
+    <header class="page-header">
+      <div>
+        <h1>Network Scanner</h1>
+        <p class="page-subtitle">Network Reconnaissance &amp; Vulnerability Assessment</p>
+      </div>
+    </header>
+
+    <!-- Simulation disclaimer: this scanner is demonstration-only, no real scanning occurs -->
+    <div class="alert-banner alert-banner--info" style="margin-bottom: 1rem;"><span>⚠️</span><div><strong>Simulation Mode</strong> — This scanner is a demonstration only. No real network scanning is performed. Results are simulated using demo data.</div></div>
+
+    <div class="scanner-layout">
+      <!-- Config Panel -->
+      <aside class="scan-config-panel card" aria-label="Scan configuration">
+        <h3>Scan Configuration</h3>
+
+        <div class="form-group">
+          <label for="scan-target">Target</label>
+          <select id="scan-target" class="form-control" aria-label="Select target to scan">
+            <!-- Populated by scanner.js -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Scan Type</label>
+          <div class="scan-type-selector" role="radiogroup" aria-label="Scan type">
+            <label><input type="radio" name="scan-type" value="quick"> <span>Quick</span></label>
+            <label><input type="radio" name="scan-type" value="full" checked> <span>Full</span></label>
+            <label><input type="radio" name="scan-type" value="stealth"> <span>Stealth</span></label>
+            <label><input type="radio" name="scan-type" value="custom"> <span>Custom</span></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Options</label>
+          <div class="scan-options">
+            <label class="scan-option">
+              <input type="checkbox" id="opt-version-detection" checked> <span>Version detection</span>
+            </label>
+            <label class="scan-option">
+              <input type="checkbox" id="opt-cve-correlation" checked> <span>CVE correlation</span>
+            </label>
+            <label class="scan-option">
+              <input type="checkbox"> <span>OS fingerprinting</span>
+            </label>
+            <label class="scan-option">
+              <input type="checkbox"> <span>SSL/TLS analysis</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Progress Area (hidden until scan starts) -->
+        <div class="scan-progress" id="scan-progress-area" aria-label="Scan progress" aria-live="polite">
+          <div class="scan-progress__header">
+            <span class="scan-progress__label">Progress</span>
+            <span class="scan-progress__pct" id="scan-progress-pct" aria-live="polite">0%</span>
+          </div>
+          <div class="progress-bar-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar-fill" id="scan-progress-bar"></div>
+          </div>
+          <div class="scan-progress__status" id="scan-status-text">Initializing...</div>
+        </div>
+
+        <div class="scan-controls">
+          <button class="btn btn--primary" id="btn-start-scan">▶ Start Scan</button>
+          <button class="btn btn--danger" id="btn-stop-scan" disabled>■ Stop</button>
+        </div>
+      </aside>
+
+      <!-- Results Area -->
+      <section class="scan-results-area" aria-label="Scan output">
+        <div class="card" style="padding:0.75rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0.25rem 0.5rem;border-bottom:1px solid var(--border-color)">
+            <span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted)">Live Log</span>
+            <span style="font-size:0.7rem;color:var(--accent-green)">● TERMINAL</span>
+          </div>
+          <div class="log-output" id="scan-log" aria-label="Scan log output" aria-live="polite"></div>
+        </div>
+
+        <!-- Results Section (hidden until scan completes) -->
+        <div id="results-section" class="results-section">
+          <div class="results-header">
+            <h3>Scan Results</h3>
+            <span class="badge badge--info" id="results-count">0 findings</span>
+          </div>
+
+          <div class="results-filters" role="search" aria-label="Filter results">
+            <select id="res-sev-filter" class="form-control" aria-label="Filter by severity">
+              <option value="">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="info">Info</option>
+            </select>
+            <select id="res-svc-filter" class="form-control" aria-label="Filter by service">
+              <option value="">All Services</option>
+              <option value="HTTP">HTTP</option>
+              <option value="HTTPS">HTTPS</option>
+              <option value="SSH">SSH</option>
+              <option value="MySQL">MySQL</option>
+              <option value="SMTP">SMTP</option>
+              <option value="FTP">FTP</option>
+            </select>
+            <input type="search" id="res-search" class="form-control search-input" placeholder="Search findings…" aria-label="Search scan results">
+          </div>
+
+          <div class="table-wrapper">
+            <table id="scan-results-table" class="data-table" aria-label="Scan results">
+              <thead>
+                <tr>
+                  <th data-col="0">CVE ID</th>
+                  <th data-col="1">Severity</th>
+                  <th data-col="2">CVSS</th>
+                  <th data-col="3">Service</th>
+                  <th data-col="4">Port</th>
+                  <th data-col="5">Title</th>
+                  <th data-col="6">Remediation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Populated by scanner.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/main.js"></script>
+<script src="js/scanner.js"></script>
+</body>
+</html>

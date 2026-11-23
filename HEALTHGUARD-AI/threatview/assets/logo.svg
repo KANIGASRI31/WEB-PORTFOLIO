@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <!-- Background -->
+  <rect width="40" height="40" rx="10" fill="#0b1120"/>
+  <!-- Outer shield -->
+  <path d="M20 4L7 9.5v9c0 8.8 5.5 16.6 13 19.5 7.5-2.9 13-11.4 13-19.5v-9L20 4z"
+        fill="none" stroke="url(#sg)" stroke-width="1.5" opacity="0.6"/>
+  <!-- Inner shield fill -->
+  <path d="M20 7L9 11.8v7.7c0 7.1 4.4 13.4 11 15.7 6.6-2.3 11-9.3 11-15.7v-7.7L20 7z"
+        fill="url(#sf)" opacity="0.12"/>
+  <!-- Cross (healthcare) -->
+  <rect x="17.5" y="14" width="5" height="13" rx="1.5" fill="url(#cg)"/>
+  <rect x="13.5" y="18" width="13" height="5" rx="1.5" fill="url(#cg)"/>
+  <defs>
+    <linearGradient id="sg" x1="7" y1="4" x2="33" y2="33" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00c8f0"/>
+      <stop offset="1" stop-color="#00e87a"/>
+    </linearGradient>
+    <linearGradient id="sf" x1="9" y1="7" x2="31" y2="35" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00c8f0"/>
+      <stop offset="1" stop-color="#00e87a"/>
+    </linearGradient>
+    <linearGradient id="cg" x1="13.5" y1="14" x2="26.5" y2="27" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00e87a"/>
+      <stop offset="1" stop-color="#00c8f0"/>
+    </linearGradient>
+  </defs>
+</svg>
